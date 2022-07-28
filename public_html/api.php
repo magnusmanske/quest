@@ -35,14 +35,28 @@ $action = $quest->tfc->getRequest ( 'action' , '' ) ;
 try {
 
 	if ( $action == 'get_random_command' ) {
-		$out['commands'] = $quest->get_commands ( 5 ) ;
+		$query_id = $quest->tfc->getRequest ( 'query_id' , 0 ) * 1 ;
+		$out['commands'] = $quest->get_commands ( 5 , $query_id ) ;
+	} else if ( $action == 'get_current_user_id' ) {
+		try {
+			$username = $widar->get_username();
+			$out['user_id'] = $quest->get_or_create_user_id ( $username ) ;
+		} catch(Exception $e) {
+			$out['user_id'] = 0 ;
+		}
 	} else if ( $action == 'run_command' ) {
 		$command_id = $quest->tfc->getRequest ( 'command_id' , 0 ) * 1 ;
 		alter_command ( $command_id , 'DONE' ) ;
 	} else if ( $action == 'bad_command' ) {
 		$command_id = $quest->tfc->getRequest ( 'command_id' , 0 ) * 1 ;
 		alter_command ( $command_id , 'BAD' ) ;
-	 } else {
+	} else if ( $action == 'get_queries' ) {
+		$start = $quest->tfc->getRequest ( 'start' , 0 ) * 1 ;
+		$batch_size = $quest->tfc->getRequest ( 'batch_size' , 50 ) * 1 ;
+		$user_id = $quest->tfc->getRequest ( 'user_id' , 0 ) * 1 ;
+		$out['queries'] = $quest->get_query_batch ( $start , $batch_size , $user_id ) ;
+
+	} else {
 		$out['status'] = "No/bad action '{$action}'" ;
 	}
 

@@ -1,0 +1,61 @@
+<template id='queries-page-template'>
+<div class='container'>
+    <div v-for='(query,query_num) in queries' class='row'>
+        <div class='card col-12' style='margin-top:0.5rem;'>
+            <div class="card-body">
+                <h3 style='display:flex'>
+                    <input v-if='internal_user_id==query.user_id' type='text' v-model='query.description' style='width: 100%' />
+                    <span v-else style='width: 100%'>
+                        {{query.description}}
+                    </span>
+                    <small style='white-space: nowrap;'>
+                        by <a :href="'https://www.wikidata.org/wiki/User:'+encodeURIComponent(query.user_name)" target='_blank' class='wikidata'>{{query.user_name}}</a>
+                    </small>
+                </h3>
+                <textarea v-if='internal_user_id==query.user_id' style='width:100%;font-size: 8pt; font-family: Courier' rows=3 v-model='query.sparql'></textarea>
+                <textarea v-else style='width:100%;font-size: 8pt; font-family: Courier; background-color:#DDD' rows=3>{{query.sparql}}</textarea>
+                <div>
+                    <button :href="'https://query.wikidata.org/#'+encodeURIComponent(query.sparql)" target='_blank' class='btn btn-outline-success' tt='open_sparql'></button>
+                    <button v-if='internal_user_id==query.user_id' class='btn btn-outline-primary' tt='save' @click.prevent='save_query(query)'></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+</template>
+
+
+<script>
+'use strict';
+
+let QueriesPage = Vue.extend ( {
+    props : [ 'user' ] ,
+    data : function () { return { queries:[] , start:0 , batch_size:50 } } ,
+    created : function () {
+        let me = this ;
+        $.get ( './api.php' , {
+            action: 'get_queries',
+            start: me.start ,
+            batch_size: me.batch_size ,
+            user_id: me.user??0
+        } , function ( d ) {
+            if ( d.status != 'OK' ) {
+                alert ( d.status ) ;
+                return ;
+            }
+            me.queries = d.queries ;
+        } , 'json' ) ;
+    } ,
+    updated : function () { tt.updateInterface(this.$el) ; } ,
+    mounted : function () { tt.updateInterface(this.$el) ; } ,
+    methods : {
+        save_query : function ( query ) {
+            console.log(JSON.parse(JSON.stringify(query)));
+            alert("Not implemented yet")
+        }
+    } ,
+    template:'#queries-page-template'
+} ) ;
+</script>

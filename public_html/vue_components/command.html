@@ -15,7 +15,7 @@ table.command_table th {
                     <td>
                         <span v-if='typeof command.main_item=="undefined"'><i>{{command.command_array[0]}}</i></span>
                         <span v-else>
-                            <wd-link :item='command.command_array[0]' smallq='1'></wd-link>
+                            <wd-link :item='command.command_array[0]' string_prop='P225' smallq='1'></wd-link>
                         </span>
                     </td>
                 </tr>
@@ -25,7 +25,7 @@ table.command_table th {
                     <td>
                         <span v-if='typeof command.main_property=="undefined"'><i>{{command.command_array[1]}}</i></span>
                         <span v-else>
-                            <wd-link :item='command.command_array[1]' smallq='1'></wd-link>
+                            <wd-link :item='command.command_array[1]' string_prop='P225' smallq='1'></wd-link>
                         </span>
                     </td>
                 </tr>
@@ -34,7 +34,7 @@ table.command_table th {
                     <th tt='value'></th>
                     <td>
                         <span v-if='/^Q\d+$/.test(command.command_array[2])'>
-                            <wd-link :item='command.command_array[2]' smallq='1'></wd-link>
+                            <wd-link :item='command.command_array[2]' string_prop='P225' smallq='1'></wd-link>
                         </span>
                         <span v-else><i>{{command.command_array[2]}}</i></span>
                     </td>
@@ -44,10 +44,10 @@ table.command_table th {
                     <th tt='references'></th>
                     <td>
                         <div v-for='r in references'>
-                            <wd-link :item='r[0]' smallq='1'></wd-link>
+                            <wd-link :item='r[0]' string_prop='P225' smallq='1'></wd-link>
                             :
                             <span v-if='/^Q\d+$/.test(r[1])'>
-                                <wd-link :item='r[1]' smallq='1'></wd-link>
+                                <wd-link :item='r[1]' string_prop='P225' smallq='1'></wd-link>
                             </span>
                             <span v-else>{{r[1]}}</span>
                         </div>
@@ -58,10 +58,10 @@ table.command_table th {
                     <th tt='qualifiers'></th>
                     <td>
                         <div v-for='r in qualifiers'>
-                            <wd-link :item='r[0]' smallq='1'></wd-link>
+                            <wd-link :item='r[0]' string_prop='P225' smallq='1'></wd-link>
                             :
                             <span v-if='/^Q\d+$/.test(r[1])'>
-                                <wd-link :item='r[1]' smallq='1'></wd-link>
+                                <wd-link :item='r[1]' string_prop='P225' smallq='1'></wd-link>
                             </span>
                             <span v-else>{{r[1]}}</span>
                         </div>

@@ -7,7 +7,10 @@
     </div>
 
     <div class='row'>
-        <span class='col-11'></span>
+        <span class='col-1'>
+            <router-link class='btn btn-outline-secondary' tt='queries' to='/queries'></router-link>
+        </span>
+        <span class='col-10'></span>
         <span class='col-1'>
             <button class='btn btn-outline-success' tt='reload' @click.prevent='load_random_command'></button>
         </span>
@@ -27,7 +30,7 @@
 'use strict';
 
 let MainPage = Vue.extend ( {
-    props : [] ,
+    props : [ 'query_id' ] ,
     data : function () { return { commands:[] } } ,
     created : function () {
         this.load_random_command() ;
@@ -38,9 +41,9 @@ let MainPage = Vue.extend ( {
         load_random_command : function () {
             let me = this ;
             me.commands = [] ;
-            $.get ( './api.php' , {
-                action: 'get_random_command'
-            } , function ( d ) {
+            let params = { action: 'get_random_command' } ;
+            if ( typeof me.query_id!='undefined' ) params.query_id = me.query_id*1 ;
+            $.get ( './api.php' , params , function ( d ) {
                 if ( d.status != 'OK' ) {
                     alert ( d.status ) ;
                     return ;

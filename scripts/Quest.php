@@ -44,8 +44,9 @@ class Quest {
 		if ($o = $result->fetch_object()) return $o->id ;
 
 		# Create new
+		$ts = $this->tfc->getCurrentTimestamp() ;
 		$description = $this->escape ( $description ) ;
-		$sql = "INSERT IGNORE INTO `queries` (`description`,`sparql`,`user_id`) VALUES ('{$description}','{$sparql}',{$user_id})" ;
+		$sql = "INSERT IGNORE INTO `queries` (`description`,`sparql`,`user_id`,`timestamp_created`) VALUES ('{$description}','{$sparql}',{$user_id},'{$ts}')" ;
 		$this->getSQL ( $sql ) ;
 		return $this->dbt->insert_id ;
 	}
@@ -83,19 +84,30 @@ class Quest {
 		}
 	}
 
-	public function get_commands ( ?int $batch_size = null , ?int $main_item = null , ?int $main_property = null) {
+	public function get_commands ( int $batch_size = 0 , int $query_id = 0 , int $main_item = 0 , int $main_property = 0) {
 		$r = rand()/getrandmax();
 		$sql = "SELECT * FROM `qs_commands` WHERE `status`='OPEN'" ;
-		if ( isset($batch_size) ) $sql .= " AND `random`>={$r}" ;
-		if ( isset($main_item) ) $sql .= " AND `main_item`={$main_item}" ;
-		if ( isset($main_property) ) $sql .= " AND `main_property`={$main_property}" ;
-		if ( isset($batch_size) ) $sql .= " ORDER BY `random` LIMIT {$batch_size}" ;
+		if ( $batch_size>0 ) $sql .= " AND `random`>={$r}" ;
+		if ( $query_id>0 ) $sql .= " AND `from_query`={$query_id}" ;
+		if ( $main_item>0 ) $sql .= " AND `main_item`={$main_item}" ;
+		if ( $main_property>0 ) $sql .= " AND `main_property`={$main_property}" ;
+		if ( $batch_size>0 ) $sql .= " ORDER BY `random` LIMIT {$batch_size}" ;
 		$result = $this->getSQL ( $sql ) ;
 		$ret = [] ;
 		while ($o = $result->fetch_object()) {
 			$o->command_array = str_getcsv ( $o->command , '|' ) ;
 			$ret[] = $o ;
 		}
+		return $ret ;
+	}
+
+	public function get_query_batch ( int $start , int $batch_size , int $user_id = 0 ) {
+		$ret = [] ;
+		$sql = "SELECT `queries`.*, `users`.`name` AS `user_name` FROM `queries`,`users` WHERE `user_id`=`users`.`id`" ;
+		if ( $user_id > 0 ) $sql .= " AND `user_id`={$user_id}" ;
+		$sql .= " ORDER BY `timestamp_created` DESC LIMIT {$batch_size} OFFSET {$start}" ;
+		$result = $this->getSQL ( $sql ) ;
+		while ($o = $result->fetch_object()) $ret[] = $o ;
 		return $ret ;
 	}
 
