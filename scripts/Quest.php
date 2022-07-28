@@ -1,12 +1,143 @@
 <?PHP
 
 require_once ( '/data/project/wikidata-todo/public_html/php/ToolforgeCommon.php' ) ;
+require_once ( '/data/project/quickstatements/public_html/quickstatements.php' ) ;
 //require_once ( '/data/project/wikidata-todo/public_html/php/wikidata.php' ) ;
-//require_once ( '/data/project/quickstatements/public_html/quickstatements.php' ) ;
+
+/*
+NOTE:
+By default, this uses [[User:Reinheitsgbot]] for edits.
+To override:
+
+$qs = $quest->get_qs() ;
+$qs->use_oauth = true ;
+$qs->oa = $OTHER_OA_TO_USE ;
+
+*/
 
 class Quest {
+	public $tfc ;
+	public $dbt ;
+	private $conf_file = '/data/project/quest/reinheitsgebot.conf' ;
+
 	function __construct () {
 		$this->tfc = new ToolforgeCommon ;
+		$this->dbt = $this->tfc->openDBtool ( 'quest_p' ) ;
+	}
+
+	public function get_or_create_user_id ( string $username ) : int {
+		$username = $this->escape ( $this->get_normalized_username($username) ) ;
+		$sql = "SELECT `id` FROM `users` WHERE `name`='{$username}'" ;
+		$result = $this->getSQL ( $sql ) ;
+		if ($o = $result->fetch_object()) return $o->id ;
+
+		# Create new
+		$sql = "INSERT IGNORE INTO `users` (`name`) VALUES ('{$username}')" ;
+		$this->getSQL ( $sql ) ;
+		return $this->dbt->insert_id ;
+	}
+
+	public function get_or_create_query_id ( string $sparql , string $description , int $user_id ) : int {
+		$sparql = $this->escape ( $sparql ) ;
+		$sql = "SELECT `id` FROM `queries` WHERE `sparql`='{$sparql}'" ;
+		$result = $this->getSQL ( $sql ) ;
+		if ($o = $result->fetch_object()) return $o->id ;
+
+		# Create new
+		$description = $this->escape ( $description ) ;
+		$sql = "INSERT IGNORE INTO `queries` (`description`,`sparql`,`user_id`) VALUES ('{$description}','{$sparql}',{$user_id})" ;
+		$this->getSQL ( $sql ) ;
+		return $this->dbt->insert_id ;
+	}
+
+	public function get_or_create_qs_command_id ( string $command , int $query_id , string $status = 'OPEN' ) : int {
+		$command = $this->escape ( $command ) ;
+		$sql = "SELECT `id` FROM `qs_commands` WHERE `command`='{$command}'" ;
+		$result = $this->getSQL ( $sql ) ;
+		if ($o = $result->fetch_object()) return $o->id ;
+
+		# Create new
+		$status = $this->escape ( $status ) ;
+		$ts = $this->tfc->getCurrentTimestamp() ;
+		$main_item = 'null' ; # TODO
+		$main_property = 'null' ; # TODO
+		if ( preg_match('/^Q(\d+)\|/',$command,$m) ) $main_item = $m[1] ;
+		if ( preg_match('/^.+?\|P(\d+)\|/',$command,$m) ) $main_property = $m[1] ;
+		$sql = "INSERT IGNORE INTO `qs_commands` (`command`,`main_item`,`main_property`,`from_query`,`status`,`timestamp_created`,`random`) VALUES ('{$command}',{$main_item},{$main_property},{$query_id},'{$status}','{$ts}',rand())" ;
+		$this->getSQL ( $sql ) ;
+		return $this->dbt->insert_id ;
+	}
+
+	public function run_query ( int $query_id ) : void {
+		$sql = "SELECT * FROM `queries` WHERE `id`={$query_id}" ;
+		$result = $this->getSQL ( $sql ) ;
+		if ($o = $result->fetch_object()) {}
+		else throw new Exception("No query #{$query_id}") ;
+		$j = $this->tfc->getSPARQL ( $o->sparql ) ;
+		if ( !isset($j) or !isset($j->head) ) throw new Exception("SPARQL query malfunction") ;
+		if ( !isset($j->results) or !isset($j->results->bindings) or count($j->results->bindings) == 0 ) return ; # No results
+		$varname = $j->head->vars[0] ;
+		foreach ( $j->results->bindings AS $v ) {
+			$command = $v->$varname->value ;
+			$this->get_or_create_qs_command_id ( $command , $query_id , 'OPEN' ) ;
+		}
+	}
+
+	public function get_commands ( ?int $batch_size = null , ?int $main_item = null , ?int $main_property = null) {
+		$r = rand()/getrandmax();
+		$sql = "SELECT * FROM `qs_commands` WHERE `status`='OPEN'" ;
+		if ( isset($batch_size) ) $sql .= " AND `random`>={$r}" ;
+		if ( isset($main_item) ) $sql .= " AND `main_item`={$main_item}" ;
+		if ( isset($main_property) ) $sql .= " AND `main_property`={$main_property}" ;
+		if ( isset($batch_size) ) $sql .= " ORDER BY `random` LIMIT {$batch_size}" ;
+		$result = $this->getSQL ( $sql ) ;
+		$ret = [] ;
+		while ($o = $result->fetch_object()) {
+			$o->command_array = str_getcsv ( $o->command , '|' ) ;
+			$ret[] = $o ;
+		}
+		return $ret ;
+	}
+
+	public function get_qs() {
+		if ( !isset($this->tfc->qs) ) {
+			$this->tfc->getQS ( 'quest' , $this->conf_file ) ;
+			$this->tfc->qs->logging = false ;
+		}
+		return $this->tfc->qs ;
+	}
+
+	public function run_command ( int $command_id ) : string {
+		$sql = "SELECT `command` FROM `qs_commands` WHERE `id`={$command_id}" ;
+		$result = $this->getSQL ( $sql ) ;
+		$commands = [] ;
+		while ($o = $result->fetch_object()) $commands[] = $o->command ;
+		if ( count($commands) == 0 ) throw new Exception("No command #{$command_id}") ;
+		$this->get_qs() ;
+		$q = $this->tfc->runCommandsQS ( $commands ) ;
+		return $q ;
+	}
+
+	public function set_command_status ( int $command_id , string $status , string $username ) {
+		$user_id = $this->get_or_create_user_id ( $username ) ;
+		$status = $this->escape ( $status ) ;
+		$ts = $this->tfc->getCurrentTimestamp() ;
+		$sql = "UPDATE `qs_commands` SET `status`='{$status}',`user_id_decision`={$user_id},`timestamp_decision`='{$ts}' WHERE `id`={$command_id}" ;
+		$this->getSQL ( $sql ) ;
+	}
+
+	protected function get_normalized_username ( string $username ) : string {
+		$username = str_replace ( '_' , ' ' , $username ) ;
+		$username = ucfirst(trim($username)) ;
+		return $username ;
+	}
+
+	protected function getSQL ( string $sql ) {
+		return $this->tfc->getSQL ( $this->dbt , $sql ) ;
+	}
+
+	protected function escape ( string $s ) : string {
+		return $this->dbt->real_escape_string ( $s ) ;
 	}
 }
 

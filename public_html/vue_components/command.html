@@ -1,0 +1,139 @@
+<style>
+table.command_table th {
+    width: 2rem;
+}
+</style>
+
+<template id='command-template'>
+<div class='row'>
+    <div class='card col-12' style='margin-top:0.5rem;'>
+        <div class="card-body">
+            <table class="table command_table">
+
+                <tr>
+                    <th tt='item'></th>
+                    <td>
+                        <span v-if='typeof command.main_item=="undefined"'><i>{{command.command_array[0]}}</i></span>
+                        <span v-else>
+                            <wd-link :item='command.command_array[0]' smallq='1'></wd-link>
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th tt='property'></th>
+                    <td>
+                        <span v-if='typeof command.main_property=="undefined"'><i>{{command.command_array[1]}}</i></span>
+                        <span v-else>
+                            <wd-link :item='command.command_array[1]' smallq='1'></wd-link>
+                        </span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th tt='value'></th>
+                    <td>
+                        <span v-if='/^Q\d+$/.test(command.command_array[2])'>
+                            <wd-link :item='command.command_array[2]' smallq='1'></wd-link>
+                        </span>
+                        <span v-else><i>{{command.command_array[2]}}</i></span>
+                    </td>
+                </tr>
+
+                <tr v-if='references.length>0'>
+                    <th tt='references'></th>
+                    <td>
+                        <div v-for='r in references'>
+                            <wd-link :item='r[0]' smallq='1'></wd-link>
+                            :
+                            <span v-if='/^Q\d+$/.test(r[1])'>
+                                <wd-link :item='r[1]' smallq='1'></wd-link>
+                            </span>
+                            <span v-else>{{r[1]}}</span>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr v-if='qualifiers.length>0'>
+                    <th tt='qualifiers'></th>
+                    <td>
+                        <div v-for='r in qualifiers'>
+                            <wd-link :item='r[0]' smallq='1'></wd-link>
+                            :
+                            <span v-if='/^Q\d+$/.test(r[1])'>
+                                <wd-link :item='r[1]' smallq='1'></wd-link>
+                            </span>
+                            <span v-else>{{r[1]}}</span>
+                        </div>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td/>
+                    <td v-if='command.status=="OPEN"'>
+                        <button class='btn btn-outline-primary' tt='add_statement' @click.prevent='add_statement()'></button>
+                        <button class='btn btn-outline-warning' tt='bad_statement' @click.prevent='bad_statement()'></button>
+                    </td>
+                    <td v-else>
+                        <strong>{{command.status}}</strong>
+                    </td>
+                </tr>
+
+            </table>
+
+        </div>
+    </div>
+</div>
+</template>
+
+
+<script>
+'use strict';
+
+Vue.component ( 'command' , {
+	props : [ 'command' ] ,
+	data : function () { return { references:[] , qualifiers:[] } } ,
+    created : function () {
+        this.references = this.get_references() ;
+        this.qualifiers = this.get_qualifiers() ;
+    } ,
+    updated : function () { tt.updateInterface(this.$el) ; } ,
+    mounted : function () { tt.updateInterface(this.$el) ; } ,
+    methods : {
+        get_references : function () {
+            let me = this ;
+            let p = 3 ;
+            let ret = [] ;
+            while ( me.command.command_array.length>p ) {
+                if ( /^S\d+$/.test(me.command.command_array[p]) ) {
+                    let prop = "P"+me.command.command_array[p].substr(1) ;
+                    ret.push ( [ prop , me.command.command_array[p+1] ] ) ;
+                }
+                p += 2 ;
+            }
+        return ret ;
+        } ,
+        get_qualifiers : function () {
+            let me = this ;
+            let p = 3 ;
+            let ret = [] ;
+            while ( me.command.command_array.length>p ) {
+                if ( /^P\d+$/.test(me.command.command_array[p]) ) {
+                    let prop = me.command.command_array[p] ;
+                    ret.push ( [ prop , me.command.command_array[p+1] ] ) ;
+                }
+                p += 2 ;
+            }
+        return ret ;
+        } ,
+        add_statement : function () {
+            this.$emit('add-statement',this.command) ;
+        } ,
+        bad_statement : function () {
+            this.$emit('bad-statement',this.command) ;
+        }
+    } ,
+	template : '#command-template'
+} ) ;
+
+</script>

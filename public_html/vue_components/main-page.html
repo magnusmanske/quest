@@ -1,0 +1,79 @@
+<template id='main-page-template'>
+<div class='container'>
+    <div class='lead'>
+        <div>
+            <span tt='main_blurb'></span>
+        </div>
+    </div>
+
+    <div class='row'>
+        <span class='col-11'></span>
+        <span class='col-1'>
+            <button class='btn btn-outline-success' tt='reload' @click.prevent='load_random_command'></button>
+        </span>
+    </div>
+
+    <command v-for='command in commands' :command='command' @add-statement='add_statement($event)' @bad-statement='bad_statement($event)'></command>
+
+    <div>
+        <button class='btn btn-outline-success' tt='reload' @click.prevent='load_random_command'></button>
+    </div>
+
+
+</div>
+</template>
+
+<script>
+'use strict';
+
+let MainPage = Vue.extend ( {
+    props : [] ,
+    data : function () { return { commands:[] } } ,
+    created : function () {
+        this.load_random_command() ;
+    } ,
+    updated : function () { tt.updateInterface(this.$el) ; } ,
+    mounted : function () { tt.updateInterface(this.$el) ; } ,
+    methods : {
+        load_random_command : function () {
+            let me = this ;
+            me.commands = [] ;
+            $.get ( './api.php' , {
+                action: 'get_random_command'
+            } , function ( d ) {
+                if ( d.status != 'OK' ) {
+                    alert ( d.status ) ;
+                    return ;
+                }
+                me.commands = d.commands ;
+            } , 'json' ) ;
+        } ,
+        send_command : function ( command , action ) {
+            let me = this ;
+            let command_index ;
+            $.each ( me.commands , function ( k , v ) {
+                if ( v.id == command.id ) command_index = k ;
+            } ) ;
+            me.commands[command_index].status = 'RUNNING' ;
+
+            $.get ( './api.php' , {
+                action: 'run_command',
+                command_id: command.id
+            } , function ( d ) {
+                if ( d.status != 'OK' ) {
+                    alert ( d.status ) ;
+                    return ;
+                }
+                me.commands[command_index].status = d.status ;
+            } , 'json' ) ;
+        } ,
+        add_statement : function (command) {
+            this.send_command ( command , 'run_command ') ;
+        } ,
+        bad_statement : function (command) {
+            this.send_command ( command , 'bad_command ') ;
+        }
+    } ,
+    template:'#main-page-template'
+} ) ;
+</script>
