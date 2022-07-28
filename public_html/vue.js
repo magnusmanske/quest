@@ -3,7 +3,7 @@
 let router ;
 let app ;
 let wd = new WikiData() ;
-let internal_user_id = 2 ; // TODO
+let internal_user_id = 0 ;
 
 $(document).ready ( function () {
     vue_components.toolname = 'quest' ;
@@ -18,7 +18,7 @@ $(document).ready ( function () {
         widar_api_url = 'https://quest.toolforge.org/api.php' ;
         const routes = [
             { path: '/queries', component: QueriesPage , props:true },
-            { path: '/queries/:user', component: QueriesPage , props:true },
+            { path: '/queries/:user_name', component: QueriesPage , props:true },
             { path: '/', component: MainPage , props:true },
             { path: '/:query_id', component: MainPage , props:true },
         ] ;

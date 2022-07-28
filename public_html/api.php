@@ -53,8 +53,24 @@ try {
 	} else if ( $action == 'get_queries' ) {
 		$start = $quest->tfc->getRequest ( 'start' , 0 ) * 1 ;
 		$batch_size = $quest->tfc->getRequest ( 'batch_size' , 50 ) * 1 ;
-		$user_id = $quest->tfc->getRequest ( 'user_id' , 0 ) * 1 ;
+		$user_name = trim ( $quest->tfc->getRequest ( 'user_name' , '' ) ) ;
+		$user_id = $user_name=='' ? 0 : $quest->get_or_create_user_id($user_name) ;
 		$out['queries'] = $quest->get_query_batch ( $start , $batch_size , $user_id ) ;
+	} else if ( $action == 'save_query' ) {
+		$query = json_decode ( $quest->tfc->getRequest ( 'query' , (object)[] ) )  ;
+		unset($query->user_name) ;
+		$username = $widar->get_username();
+		$user_id = $quest->get_or_create_user_id ( $username ) ;
+		if ( $query->user_id != $user_id ) throw new Exception("You are not the owner of this query!") ;
+		$query_id = $quest->save_query($query) ;
+		$out['query'] = $quest->get_query_by_id($query_id) ;
+	} else if ( $action == 'delete_query' ) {
+		$query_id = $quest->tfc->getRequest ( 'query_id' , 0 ) * 1 ;
+		$username = $widar->get_username();
+		$user_id = $quest->get_or_create_user_id ( $username ) ;
+		$query = $quest->get_query_by_id ( $query_id ) ;
+		if ( $query->user_id != $user_id ) throw new Exception("You are not the owner of this query!") ;
+		$quest->delete_query($query_id) ;
 
 	} else {
 		$out['status'] = "No/bad action '{$action}'" ;

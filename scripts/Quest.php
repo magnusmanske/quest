@@ -26,6 +26,7 @@ class Quest {
 	}
 
 	public function get_or_create_user_id ( string $username ) : int {
+		if ( trim($username) == '' ) return 0 ;
 		$username = $this->escape ( $this->get_normalized_username($username) ) ;
 		$sql = "SELECT `id` FROM `users` WHERE `name`='{$username}'" ;
 		$result = $this->getSQL ( $sql ) ;
@@ -135,6 +136,51 @@ class Quest {
 		$status = $this->escape ( $status ) ;
 		$ts = $this->tfc->getCurrentTimestamp() ;
 		$sql = "UPDATE `qs_commands` SET `status`='{$status}',`user_id_decision`={$user_id},`timestamp_decision`='{$ts}' WHERE `id`={$command_id}" ;
+		$this->getSQL ( $sql ) ;
+	}
+
+	public function save_query ( object $query ) : int {
+		foreach ( ['description','sparql','user_id','hours_between_runs'] AS $k ) {
+			if ( !isset($query->$k) ) throw new Exception("'{$k}' is required in the query") ;
+			if ( trim($query->$k) == '' ) throw new Exception("'{$k}' must not be empty") ;
+		}
+		$query->last_run = '' ;
+		$query->next_run = '' ;
+		$query->timestamp_created = $this->tfc->getCurrentTimestamp() ;
+		$keys = [] ;
+		$values = [] ;
+		if ( $query->id == 0 ) unset ( $query->id ) ;
+		foreach ( $query AS $k => $v ) {
+			$keys[] = "`".$this->escape("{$k}")."`" ;
+			$values[] = "'".$this->escape("{$v}")."'" ;
+		}
+		if ( isset($query->id) and $query->id*1>0 ) {
+			# Update
+			$query->id *= 1 ;
+			$sql = [] ;
+			foreach ( $keys AS $num => $k ) $sql[] = "{$k}={$values[$num]}" ;
+			$sql = "UPDATE `queries` SET " . implode(',',$sql) . " WHERE `id`={$query->id}" ;
+			$this->getSQL ( $sql ) ;
+			return $query->id ;
+		} else {
+			# Create
+			$sql = "INSERT IGNORE INTO `queries` (" . implode(',',$keys) . ") VALUES (" . implode(',',$values) . ")" ;
+			$this->getSQL ( $sql ) ;
+			return $this->dbt->insert_id ;
+		}
+	}
+
+	public function get_query_by_id ( int $query_id ) : object {
+		$sql = "SELECT * FROM `queries` WHERE `id`={$query_id}" ;
+		$result = $this->getSQL ( $sql ) ;
+		if ($o = $result->fetch_object()) return $o ;
+		throw new Exception("No query #{$query_id}") ;
+	}
+
+	public function delete_query ( int $query_id ) {
+		$sql = "DELETE FROM `qs_commands` WHERE `from_query`={$query_id}" ;
+		$this->getSQL ( $sql ) ;
+		$sql = "DELETE FROM `queries` WHERE `id`={$query_id}" ;
 		$this->getSQL ( $sql ) ;
 	}
 
