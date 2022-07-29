@@ -83,6 +83,12 @@ class Quest {
 			$command = $v->$varname->value ;
 			$this->get_or_create_qs_command_id ( $command , $query_id , 'OPEN' ) ;
 		}
+
+		# Update query times
+		$last_ts = $this->tfc->getCurrentTimestamp() ;
+		$next_ts = date ( 'YmdHis' , strtotime('+'.$o->hours_between_runs.' hours') ) ;
+		$sql = "UPDATE `queries` SET `last_run`='{$last_ts}',`next_run`='{$next_ts}',`status`='OK' WHERE `id`={$query_id}" ;
+		$this->getSQL ( $sql ) ;
 	}
 
 	public function get_commands ( int $batch_size = 0 , int $query_id = 0 , int $main_item = 0 , int $main_property = 0) {
@@ -146,6 +152,7 @@ class Quest {
 		}
 		$query->last_run = '' ;
 		$query->next_run = '' ;
+		$query->status = 'OK' ;
 		$query->timestamp_created = $this->tfc->getCurrentTimestamp() ;
 		$keys = [] ;
 		$values = [] ;
@@ -168,6 +175,12 @@ class Quest {
 			$this->getSQL ( $sql ) ;
 			return $this->dbt->insert_id ;
 		}
+	}
+
+	public function update_query_status ( int $query_id , string $new_status ) {
+		$new_status = $this->escape ( $new_status ) ;
+		$sql = "UPDATE `queries` SET `status`='{$new_status}' WHERE `id`={$query_id}" ;
+		$this->getSQL ( $sql ) ;
 	}
 
 	public function get_query_by_id ( int $query_id ) : object {

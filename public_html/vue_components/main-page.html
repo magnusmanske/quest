@@ -8,18 +8,18 @@
 
     <div class='row'>
         <span class='col-1'>
-            <router-link class='btn btn-outline-secondary' tt='queries' to='/queries'></router-link>
+            <router-link class='btn btn-sm btn-outline-secondary' tt='queries' to='/queries'></router-link>
         </span>
         <span class='col-10'></span>
         <span class='col-1'>
-            <button class='btn btn-outline-success' tt='reload' @click.prevent='load_random_command'></button>
+            <button class='btn btn-sm btn-outline-success' tt='reload' @click.prevent='load_random_command'></button>
         </span>
     </div>
 
     <command v-for='command in commands' :command='command' @add-statement='add_statement($event)' @bad-statement='bad_statement($event)'></command>
 
     <div>
-        <button class='btn btn-outline-success' tt='reload' @click.prevent='load_random_command'></button>
+        <button class='btn btn-sm btn-outline-success' tt='reload' @click.prevent='load_random_command'></button>
     </div>
 
 
@@ -60,7 +60,7 @@ let MainPage = Vue.extend ( {
             me.commands[command_index].status = 'RUNNING' ;
 
             $.get ( './api.php' , {
-                action: 'run_command',
+                action: action,
                 command_id: command.id
             } , function ( d ) {
                 if ( d.status != 'OK' ) {

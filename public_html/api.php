@@ -23,7 +23,7 @@ function alter_command ( $command_id , $new_status ) {
 	$qs->oa = $widar->oa ;
 
 	$username = $widar->get_username();
-	$out['q'] = $quest->run_command ( $command_id ) ;
+	if ( $new_status == 'DONE' ) $out['q'] = $quest->run_command ( $command_id ) ;
 	$quest->set_command_status ( $command_id , $new_status , $username ) ;
 	$out['new_status'] = $new_status ;
 }

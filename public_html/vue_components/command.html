@@ -2,6 +2,10 @@
 table.command_table th {
     width: 2rem;
 }
+span.wd_desc {
+    font-size: 9pt;
+    color: #888;
+}
 </style>
 
 <template id='command-template'>
@@ -16,6 +20,7 @@ table.command_table th {
                         <span v-if='typeof command.main_item=="undefined"'><i>{{command.command_array[0]}}</i></span>
                         <span v-else>
                             <wd-link :item='command.command_array[0]' string_prop='P225' smallq='1'></wd-link>
+                            <span class='wd_desc'><wd-desc :language='tt.language' :item='command.command_array[0]' autodesc_fallback='1'></wd-desc></span>
                         </span>
                     </td>
                 </tr>
@@ -35,6 +40,7 @@ table.command_table th {
                     <td>
                         <span v-if='/^Q\d+$/.test(command.command_array[2])'>
                             <wd-link :item='command.command_array[2]' string_prop='P225' smallq='1'></wd-link>
+                            <span class='wd_desc'><wd-desc :language='tt.language' :item='command.command_array[2]' autodesc_fallback='1'></wd-desc></span>
                         </span>
                         <span v-else><i>{{command.command_array[2]}}</i></span>
                     </td>
@@ -48,6 +54,7 @@ table.command_table th {
                             :
                             <span v-if='/^Q\d+$/.test(r[1])'>
                                 <wd-link :item='r[1]' string_prop='P225' smallq='1'></wd-link>
+                                <span class='wd_desc'><wd-desc :language='tt.language' :item='r[1]' autodesc_fallback='1'></wd-desc></span>
                             </span>
                             <span v-else>{{r[1]}}</span>
                         </div>
@@ -62,6 +69,7 @@ table.command_table th {
                             :
                             <span v-if='/^Q\d+$/.test(r[1])'>
                                 <wd-link :item='r[1]' string_prop='P225' smallq='1'></wd-link>
+                                <span class='wd_desc'><wd-desc :language='tt.language' :item='r[1]' autodesc_fallback='1'></wd-desc></span>
                             </span>
                             <span v-else>{{r[1]}}</span>
                         </div>
@@ -70,9 +78,9 @@ table.command_table th {
                 
                 <tr>
                     <td/>
-                    <td v-if='command.status=="OPEN"'>
-                        <button class='btn btn-outline-primary' tt='add_statement' @click.prevent='add_statement()'></button>
-                        <button class='btn btn-outline-warning' tt='bad_statement' @click.prevent='bad_statement()'></button>
+                    <td v-if='command.status=="OPEN" && widar.is_logged_in'>
+                        <button class='btn btn-sm btn-outline-primary' tt='add_statement' @click.prevent='add_statement()'></button>
+                        <button class='btn btn-sm btn-outline-warning' tt='bad_statement' @click.prevent='bad_statement()'></button>
                     </td>
                     <td v-else>
                         <strong>{{command.status}}</strong>

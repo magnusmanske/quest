@@ -2,11 +2,12 @@
 <div class='container'>
     <div class='row'>
         <span class='col-1' v-if='typeof user_name!="undefined"'>
-            <router-link class='btn btn-outline-secondary' tt='queries' to='/queries'></router-link>
+            <router-link class='btn btn-sm btn-outline-secondary' tt='queries' to='/queries'></router-link>
         </span>
-        <span :class='typeof user_name!="undefined"?"col-9":"col-10"'></span>
-        <span v-if='internal_user_id!=0' class='col-1'>
-            <button class='btn btn-outline-primary' tt='add_query' @click.prevent='add_query'></button>
+        <span :class='typeof user_name!="undefined"?"col-8":"col-9"'></span>
+        <span v-if='internal_user_id!=0' class='col-3 text-right'>
+            <router-link class='btn btn-sm btn-outline-secondary' :to="'/queries/'+widar.getUserName()" tt='my_queries'></router-link>
+            <button class='btn btn-sm btn-outline-primary' tt='add_query' @click.prevent='add_query'></button>
         </span>
     </div>
     <div v-for='(query,query_num) in queries' class='row'>
@@ -38,10 +39,14 @@
                             <span tt='hours'></span>
                         </label>
                     </div>
-                    <div class='col-6 text-right'>
-                        <button v-if='internal_user_id==query.user_id' class='btn btn-outline-primary' tt='save' @click.prevent='save_query(query_num)'></button>
-                        <button v-if='internal_user_id==query.user_id && query.id!=0' class='btn btn-outline-danger' tt='delete_query' @click.prevent='delete_query(query_num)'></button>
-                        <a :href="'https://query.wikidata.org/#'+encodeURIComponent(query.sparql)" target='_blank' class='btn btn-outline-success' tt='open_sparql'></a>
+                    <div class='col-1'>
+                        <span v-if='query.status!="OK"'>{{query.status}}</span>
+                    </div>
+                    <div class='col-5 text-right'>
+                        <button v-if='internal_user_id==query.user_id' class='btn btn-sm btn-outline-primary' tt='save' @click.prevent='save_query(query_num)'></button>
+                        <button v-if='internal_user_id==query.user_id && query.id!=0' class='btn btn-sm btn-outline-danger' tt='delete_query' @click.prevent='delete_query(query_num)'></button>
+                        <a :href="'https://query.wikidata.org/#'+encodeURIComponent(query.sparql)" target='_blank' class='btn btn-sm btn-outline-success' tt='open_sparql'></a>
+                        <router-link class='btn btn-sm btn-outline-secondary' :to="'/'+query.id" tt='commands'></router-link>
                     </div>
                 </div>
             </div>
@@ -123,7 +128,7 @@ let QueriesPage = Vue.extend ( {
             me.queries.unshift ( query ) ;
         } ,
         get_empty_query : function () {
-            return {"id":"0","description":"","sparql":"","user_id":""+internal_user_id,"last_run":"","next_run":"","hours_between_runs":"168","hours":0,"days":7,"timestamp_created":"","user_name":widar.getUserName()} ;
+            return {"id":"0","description":"","sparql":"","user_id":""+internal_user_id,"last_run":"","next_run":"","hours_between_runs":"168","hours":0,"days":7,"status":"OK","timestamp_created":"","user_name":widar.getUserName()} ;
         }
     } ,
     template:'#queries-page-template'
