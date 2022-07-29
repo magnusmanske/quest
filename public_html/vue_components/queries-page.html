@@ -1,7 +1,10 @@
 <template id='queries-page-template'>
 <div class='container'>
     <div class='row'>
-        <span class='col-10'></span>
+        <span class='col-1' v-if='typeof user_name!="undefined"'>
+            <router-link class='btn btn-outline-secondary' tt='queries' to='/queries'></router-link>
+        </span>
+        <span :class='typeof user_name!="undefined"?"col-9":"col-10"'></span>
         <span v-if='internal_user_id!=0' class='col-1'>
             <button class='btn btn-outline-primary' tt='add_query' @click.prevent='add_query'></button>
         </span>
@@ -10,7 +13,7 @@
         <div class='card col-12' style='margin-top:0.5rem;'>
             <div class="card-body">
                 <h3 style='display:flex'>
-                    <input v-if='internal_user_id==query.user_id' type='text' v-model='query.description' style='width: 100%' />
+                    <input v-if='internal_user_id==query.user_id' type='text' v-model='query.description' style='width: 100%' tt_placeholder='description' />
                     <span v-else style='width: 100%'>
                         {{query.description}}
                     </span>
@@ -23,10 +26,23 @@
                 </h3>
                 <textarea v-if='internal_user_id==query.user_id' style='width:100%;font-size: 8pt; font-family: Courier' rows=3 v-model='query.sparql'></textarea>
                 <textarea v-else style='width:100%;font-size: 8pt; font-family: Courier; background-color:#DDD' rows=3>{{query.sparql}}</textarea>
-                <div>
-                    <button :href="'https://query.wikidata.org/#'+encodeURIComponent(query.sparql)" target='_blank' class='btn btn-outline-success' tt='open_sparql'></button>
-                    <button v-if='internal_user_id==query.user_id' class='btn btn-outline-primary' tt='save' @click.prevent='save_query(query_num)'></button>
-                    <button v-if='internal_user_id==query.user_id && query.id!=0' class='btn btn-outline-danger' tt='delete_query' @click.prevent='delete_query(query_num)'></button>
+                <div class='row'>
+                    <div class='col-6'>
+                        <span tt='rerun_query'></span>
+                        <label>
+                            <input type='number' v-model='query.days' style='width: 4rem;' />
+                            <span tt='days'></span>
+                        </label>
+                        <label>
+                            <input type='number' v-model='query.hours' style='width: 4rem;' />
+                            <span tt='hours'></span>
+                        </label>
+                    </div>
+                    <div class='col-6 text-right'>
+                        <button v-if='internal_user_id==query.user_id' class='btn btn-outline-primary' tt='save' @click.prevent='save_query(query_num)'></button>
+                        <button v-if='internal_user_id==query.user_id && query.id!=0' class='btn btn-outline-danger' tt='delete_query' @click.prevent='delete_query(query_num)'></button>
+                        <a :href="'https://query.wikidata.org/#'+encodeURIComponent(query.sparql)" target='_blank' class='btn btn-outline-success' tt='open_sparql'></a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -44,40 +60,52 @@ let QueriesPage = Vue.extend ( {
     props : [ 'user_name' ] ,
     data : function () { return { queries:[] , start:0 , batch_size:50 } } ,
     created : function () {
-        let me = this ;
-        $.get ( './api.php' , {
-            action: 'get_queries',
-            start: me.start ,
-            batch_size: me.batch_size ,
-            user_name: me.user_name??''
-        } , function ( d ) {
-            if ( d.status != 'OK' ) {
-                alert ( d.status ) ;
-                return ;
-            }
-            me.queries = d.queries ;
-        } , 'json' ) ;
+        this.load_query_batch();
     } ,
     updated : function () { tt.updateInterface(this.$el) ; } ,
     mounted : function () { tt.updateInterface(this.$el) ; } ,
     methods : {
-        save_query : function ( query_num ) {
-            //console.log(JSON.parse(JSON.stringify(query)));
+        load_query_batch : function () {
             let me = this ;
             $.get ( './api.php' , {
-                action: 'save_query',
-                query: JSON.stringify(me.queries[query_num])
+                action: 'get_queries',
+                start: me.start ,
+                batch_size: me.batch_size ,
+                user_name: me.user_name??''
             } , function ( d ) {
                 if ( d.status != 'OK' ) {
                     alert ( d.status ) ;
                     return ;
                 }
-                me.queries[query_num] = d.query ;
+                $.each ( d.queries , function ( query_num , query ) {
+                    query.hours = query.hours_between_runs % 24 ;
+                    query.days = (query.hours_between_runs-query.hours)/24 ;
+                } ) ;
+                me.queries = d.queries ;
+            } , 'json' ) ;
+        } ,
+        save_query : function ( query_num ) {
+            //console.log(JSON.parse(JSON.stringify(query)));
+            let me = this ;
+            let query = { ...me.queries[query_num] };
+            query.hours_between_runs = query.days*24+query.hours ;
+            delete query.days ;
+            delete query.hours ;
+            $.get ( './api.php' , {
+                action: 'save_query',
+                query: JSON.stringify(query)
+            } , function ( d ) {
+                if ( d.status != 'OK' ) {
+                    alert ( d.status ) ;
+                    return ;
+                }
+                Vue.set ( me.queries , query_num , d.query ) ;
             } ) ;
         } ,
         delete_query : function ( query_num ) {
             //console.log(JSON.parse(JSON.stringify(query)));
             let me = this ;
+            if ( !confirm(tt.t('confirm_delete')) ) return ;
             $.get ( './api.php' , {
                 action: 'delete_query',
                 query_id: me.queries[query_num].id
@@ -86,7 +114,7 @@ let QueriesPage = Vue.extend ( {
                     alert ( d.status ) ;
                     return ;
                 }
-                delete me.queries[query_num]; // TODO FIXME DOESN'T WORK
+                me.queries.splice(query_num,1);
             } ) ;
         } ,
         add_query : function () {
@@ -95,7 +123,7 @@ let QueriesPage = Vue.extend ( {
             me.queries.unshift ( query ) ;
         } ,
         get_empty_query : function () {
-            return {"id":"0","description":"","sparql":"","user_id":""+internal_user_id,"last_run":"","next_run":"","hours_between_runs":"168","timestamp_created":"","user_name":widar.getUserName()} ;
+            return {"id":"0","description":"","sparql":"","user_id":""+internal_user_id,"last_run":"","next_run":"","hours_between_runs":"168","hours":0,"days":7,"timestamp_created":"","user_name":widar.getUserName()} ;
         }
     } ,
     template:'#queries-page-template'
