@@ -83,11 +83,15 @@ let QueriesPage = Vue.extend ( {
                     return ;
                 }
                 $.each ( d.queries , function ( query_num , query ) {
-                    query.hours = query.hours_between_runs % 24 ;
-                    query.days = (query.hours_between_runs-query.hours)/24 ;
+                    d.queries[query_num] = me.fix_loaded_query(query) ;
                 } ) ;
                 me.queries = d.queries ;
             } , 'json' ) ;
+        } ,
+        fix_loaded_query : function ( query ) {
+            query.hours = query.hours_between_runs % 24 ;
+            query.days = (query.hours_between_runs-query.hours)/24 ;
+            return query ;
         } ,
         save_query : function ( query_num ) {
             //console.log(JSON.parse(JSON.stringify(query)));
@@ -104,6 +108,7 @@ let QueriesPage = Vue.extend ( {
                     alert ( d.status ) ;
                     return ;
                 }
+                d.query = me.fix_loaded_query(d.query) ;
                 Vue.set ( me.queries , query_num , d.query ) ;
             } ) ;
         } ,

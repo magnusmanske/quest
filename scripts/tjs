@@ -1,0 +1,2 @@
+toolforge-jobs run --image tf-php74 --continuous --mem 512Mi --command '/data/project/quest/scripts/tool.php background' background
+

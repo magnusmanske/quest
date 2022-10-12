@@ -197,6 +197,19 @@ class Quest {
 		$this->getSQL ( $sql ) ;
 	}
 
+	public function run_overdue_queries () {
+		$ts = $this->tfc->getCurrentTimestamp() ;
+		$sql = "SELECT * FROM `queries` WHERE `next_run`<='{$ts}' AND `status`='OK' ORDER BY `next_run`" ;
+		$result = $this->getSQL ( $sql ) ;
+		while ($o = $result->fetch_object()) {
+			try {
+				$this->run_query ( $o->id ) ;
+			} catch(Exception $e) {
+				$this->update_query_status($o->id,'FAILED');
+			}
+		}
+	}
+
 	protected function get_normalized_username ( string $username ) : string {
 		$username = str_replace ( '_' , ' ' , $username ) ;
 		$username = ucfirst(trim($username)) ;

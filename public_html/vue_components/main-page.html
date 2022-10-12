@@ -71,10 +71,10 @@ let MainPage = Vue.extend ( {
             } , 'json' ) ;
         } ,
         add_statement : function (command) {
-            this.send_command ( command , 'run_command ') ;
+            this.send_command ( command , 'run_command') ;
         } ,
         bad_statement : function (command) {
-            this.send_command ( command , 'bad_command ') ;
+            this.send_command ( command , 'bad_command') ;
         }
     } ,
     template:'#main-page-template'
